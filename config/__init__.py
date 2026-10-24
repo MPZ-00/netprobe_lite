@@ -50,7 +50,7 @@ class Config_Presentation():
     weight_jitter = float(os.getenv('weight_jitter'))
     weight_dns_latency = float(os.getenv('weight_dns_latency'))
 
-    threshold_loss = int(os.getenv('threshold_loss'))
-    threshold_latency = int(os.getenv('threshold_latency'))
-    threshold_jitter = int(os.getenv('threshold_jitter'))
-    threshold_dns_latency = int(os.getenv('threshold_dns_latency'))    
+    threshold_loss = float(os.getenv('threshold_loss'))
+    threshold_latency = float(os.getenv('threshold_latency'))
+    threshold_jitter = float(os.getenv('threshold_jitter'))
+    threshold_dns_latency = float(os.getenv('threshold_dns_latency'))    

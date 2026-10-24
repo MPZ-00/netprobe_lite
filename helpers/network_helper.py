@@ -1,9 +1,19 @@
 # Network tests
+import re
 import subprocess
-import json
 from threading import Thread
 import dns.resolver
 import speedtest
+
+LOSS_RE = re.compile(r'([\d.]+)% packet loss')
+RTT_RE = re.compile(r'rtt min/avg/max/mdev = [\d.]+/([\d.]+)/[\d.]+/([\d.]+) ms')
+
+
+def run_parallel(threads):
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
 
 
 class NetworkCollector(object): # Main network collection class
@@ -14,142 +24,78 @@ class NetworkCollector(object): # Main network collection class
         self.stats = [] # List of stat dicts
         self.dnsstats = [] # List of stat dicts
         self.dns_test_site = dns_test_site # Site used to test DNS response times
-        self.nameservers = []
         self.nameservers = nameservers_external
-
 
     def pingtest(self,count,site):
 
-        ping = subprocess.getoutput(f"ping -n -i 0.1 -c {count} {site} | grep 'rtt\|loss'")
+        ping = subprocess.run(["ping", "-n", "-i", "0.1", "-W", "1", "-c", count, site], capture_output=True, text=True).stdout
 
-        try:
-            loss = ping.split(' ')[5].strip('%')
-            latency=ping.split('/')[4]
-            jitter=ping.split('/')[6].split(' ')[0]
+        loss = LOSS_RE.search(ping)
+        rtt = RTT_RE.search(ping)
 
-            netdata = {
-                "site":site,
-                "latency":latency,
-                "loss":loss,
-                "jitter":jitter
-            }
+        # No summary at all (e.g. name resolution failed) still counts as total loss
+        netdata = {
+            "site":site,
+            "loss":float(loss.group(1)) if loss else 100.0,
+            "latency":float(rtt.group(1)) if rtt else None,
+            "jitter":float(rtt.group(2)) if rtt else None
+        }
 
-            self.stats.append(netdata)
-
-        except:
+        if not rtt:
             print(f"Error pinging {site}")
-            return False
 
-        return True
+        self.stats.append(netdata)
 
     def dnstest(self,site,nameserver):
-        
+
         my_resolver = dns.resolver.Resolver()
-
-        server = [] # Resolver needs a list
-        server.append(nameserver[1])
-
 
         try:
 
-            my_resolver.nameservers = server
-            my_resolver.timeout = 10
+            my_resolver.nameservers = [nameserver[1]]
+            my_resolver.lifetime = 10
 
-            answers = my_resolver.query(site,'A')
+            answers = my_resolver.resolve(site,'A')
 
             dns_latency = round(answers.response.time * 1000,2)
-
-            dnsdata = {
-                "nameserver":nameserver[0],
-                "nameserver_ip":nameserver[1],
-                "latency":dns_latency
-            }
-
-            self.dnsstats.append(dnsdata)
 
         except Exception as e:
             print(f"Error performing DNS resolution on {nameserver}")
             print(e)
+            dns_latency = 5000
 
-            dnsdata = {
-                "nameserver":nameserver[0],
-                "nameserver_ip":nameserver[1],
-                "latency":5000
-            }
-            
-            self.dnsstats.append(dnsdata)
-
-        return True
+        self.dnsstats.append({
+            "nameserver":nameserver[0],
+            "nameserver_ip":nameserver[1],
+            "latency":dns_latency
+        })
 
     def collect(self):
 
-        # Empty preveious results
+        # Empty previous results
         self.stats = []
         self.dnsstats = []
 
-        # Create threads, start them
-        threads = []
+        # Pings first, DNS after, so ping traffic doesn't skew DNS timings
+        run_parallel([Thread(target=self.pingtest, args=(self.count,item,)) for item in self.sites])
+        run_parallel([Thread(target=self.dnstest, args=(self.dns_test_site,item,)) for item in self.nameservers])
 
-        for item in self.sites:
-            t = Thread(target=self.pingtest, args=(self.count,item,))
-            threads.append(t)
-            t.start()
-
-        # Wait for threads to complete
-        for t in threads:
-            t.join()
-
-        # Create threads, start them
-        threads = []            
-
-        for item in self.nameservers:
-            s = Thread(target=self.dnstest, args=(self.dns_test_site,item,))
-            threads.append(s)
-            s.start()            
-
-        # Wait for threads to complete
-        for s in threads:
-            s.join()
-
-        results = json.dumps({
+        return {
             "stats":self.stats,
             "dns_stats":self.dnsstats
-        })
-
-        return results
+        }
 
 
 class Netprobe_Speedtest(object): # Speed test class
 
-    def __init__(self):
-        self.speedtest_stats = {"download": None, "upload": None}
-
-    def netprobe_speedtest(self):
+    def collect(self):
 
         s = speedtest.Speedtest()
         s.get_best_server()
-        download = s.download()
-        upload = s.upload()
 
-        self.speedtest_stats = {
-            "download": download,
-            "upload": upload
+        return {
+            "speed_stats":{
+                "download": s.download(),
+                "upload": s.upload()
+            }
         }
-
-    def collect(self):
-
-        self.speedtest_stats = {"download": None, "upload": None}
-        self.netprobe_speedtest()
-
-        results = json.dumps({
-            "speed_stats":self.speedtest_stats
-        })
-
-        return results
-
-
-
-
-
-
-
