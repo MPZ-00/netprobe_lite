@@ -69,6 +69,12 @@ class CustomCollector(object):
 
         yield h
 
+        # Lets the dashboard tell "disabled" apart from "no result yet"
+        e = GaugeMetricFamily("Speedtest_Enabled", 'Whether the speedtest service is enabled in .env')
+        e.add_metric([],int(Config_Netprobe.speedtest_enabled))
+
+        yield e
+
         if stats_speedtest: # Speed test is optional
 
             s = GaugeMetricFamily("Speed_Stats", 'Speedtest performance statistics from speedtest.net', labels=['direction'])

@@ -1683,9 +1683,40 @@
               }
             ]
           },
+          "noValue": "Not run yet",
           "unit": "bps"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "index": 0,
+                        "text": "Disabled"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "text",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 9,
@@ -1744,6 +1775,18 @@
           "range": true,
           "refId": "B",
           "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Zd5Cyo04z"
+          },
+          "editorMode": "code",
+          "expr": "Speedtest_Enabled == 0",
+          "instant": false,
+          "legendFormat": "Speedtest",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "Internet Bandwidth (from speedtest.net)",
@@ -1805,6 +1848,7 @@
               }
             ]
           },
+          "noValue": "No speedtest results",
           "unit": "bps"
         },
         "overrides": []
