@@ -33,13 +33,19 @@ To run Netprobe, you'll need a PC running Docker connected directly to your ISP 
 git clone https://github.com/plaintextpackets/netprobe_lite.git
 ```
 
-2. From the cloned folder, use docker compose to launch the app:
+2. From the cloned folder, create your config from the template and edit it as needed:
+
+```
+cp .env.example .env
+```
+
+3. Use docker compose to launch the app:
 
 ```
 docker compose up
 ```
 
-3. To shut down the app, use docker compose again:
+4. To shut down the app, use docker compose again:
 
 ```
 docker compose down
@@ -61,7 +67,9 @@ docker compose down -v
 git clone https://github.com/plaintextpackets/netprobe_lite.git
 ```
 
-3. Re-start Netprobe:
+3. Copy your old .env into the new folder, or create a fresh one with `cp .env.example .env`.
+
+4. Re-start Netprobe:
 
 ```
 docker compose up
@@ -77,7 +85,7 @@ docker compose up
 
 ### Extend Data Retention
 
-By default, Netprobe is configured to retain data for 30 days. You can modify this retention period by editing the compose.yml file.
+The retention period is set in the compose.yml file.
 
 1. Open the compose.yml file in a text editor.
 
@@ -86,7 +94,7 @@ By default, Netprobe is configured to retain data for 30 days. You can modify th
 ```
 command:
 ...
-  - '--storage.tsdb.retention.time=30d'  # Set retention to 30 days (modify as needed)
+  - '--storage.tsdb.retention.time=<n>d'  # Adjust retention to n days
 ```
 
 ### Enable Speedtest
