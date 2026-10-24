@@ -16,7 +16,7 @@ services:
       - netprobe-net
     dns:
       - 8.8.8.8
-      - 8.8.4.4      
+      - 8.8.4.4
 
   netprobe:
     restart: always
@@ -31,7 +31,7 @@ services:
       - netprobe-net
     dns:
       - 8.8.8.8
-      - 8.8.4.4      
+      - 8.8.4.4
 
   speedtest:
     restart: always
@@ -46,7 +46,7 @@ services:
       - netprobe-net
     dns:
       - 8.8.8.8
-      - 8.8.4.4      
+      - 8.8.4.4
 
   presentation:
     restart: always
@@ -61,7 +61,7 @@ services:
       - netprobe-net
     dns:
       - 8.8.8.8
-      - 8.8.4.4      
+      - 8.8.4.4
 
   prometheus:
     restart: always
@@ -73,13 +73,13 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'  # Adjust retention to 30 days
+      - '--storage.tsdb.retention.time=180d'  # Adjust retention to n days
 
     networks:
       - netprobe-net
     dns:
       - 8.8.8.8
-      - 8.8.4.4      
+      - 8.8.4.4
 
   grafana:
     restart: always
@@ -96,9 +96,8 @@ services:
       - netprobe-net
     dns:
       - 8.8.8.8
-      - 8.8.4.4      
-      
+      - 8.8.4.4
+
 volumes:
   prometheus_data:
   grafana_data:
-  
