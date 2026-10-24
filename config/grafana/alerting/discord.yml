@@ -1,0 +1,58 @@
+apiVersion: 1
+
+templates:
+  - orgId: 1
+    name: netprobe-discord
+    template: |
+      {{ define "netprobe.discord.payload" -}}
+      {{- $embeds := coll.Slice -}}
+      {{- range $i, $a := .Alerts -}}
+      {{- if lt $i 10 -}}{{/* Discord accepts at most 10 embeds per message */}}
+      {{- $fields := coll.Slice -}}
+      {{- range $key := coll.Slice "alertname" "severity" "job" "group" "type" "service" -}}
+      {{- with index $a.Labels $key -}}
+      {{- $fields = coll.Append (coll.Dict "name" (title $key) "value" . "inline" true) $fields -}}
+      {{- end -}}
+      {{- end -}}
+      {{- $values := "" -}}
+      {{- range $k, $v := $a.Values -}}
+      {{- $values = printf "%s%s = %v\n" $values $k $v -}}
+      {{- end -}}
+      {{- if $values -}}
+      {{- $fields = coll.Append (coll.Dict "name" "Values" "value" $values "inline" false) $fields -}}
+      {{- end -}}
+      {{- $links := "" -}}
+      {{- with $a.DashboardURL -}}{{- $links = printf "%s | [Dashboard](%s)" $links . -}}{{- end -}}
+      {{- with $a.PanelURL -}}{{- $links = printf "%s | [Panel](%s)" $links . -}}{{- end -}}
+      {{- with $a.SilenceURL -}}{{- $links = printf "%s | [Silence](%s)" $links . -}}{{- end -}}
+      {{- with $a.GeneratorURL -}}{{- $links = printf "%s | [Source](%s)" $links . -}}{{- end -}}
+      {{- if $links -}}
+      {{- $fields = coll.Append (coll.Dict "name" "Links" "value" (slice $links 3) "inline" false) $fields -}}
+      {{- end -}}
+      {{- $emoji := "✅" -}}{{- $color := 5763719 -}}{{- $time := $a.EndsAt -}}
+      {{- if eq $a.Status "firing" -}}{{- $emoji = "🔥" -}}{{- $color = 15548997 -}}{{- $time = $a.StartsAt -}}{{- end -}}
+      {{- $description := or (index $a.Annotations "description") (index $a.Annotations "summary") "No description" -}}
+      {{- $embeds = coll.Append (coll.Dict
+        "title" (printf "%s %s" $emoji (index $a.Labels "alertname"))
+        "description" $description
+        "color" $color
+        "fields" $fields
+        "timestamp" $time
+        "footer" (coll.Dict "text" (printf "Grafana Alert · %s" $a.Status))
+      ) $embeds -}}
+      {{- end -}}
+      {{- end -}}
+      {{- data.ToJSON (coll.Dict "embeds" $embeds) -}}
+      {{- end }}
+
+contactPoints:
+  - orgId: 1
+    name: Discord
+    receivers:
+      - uid: netprobe-discord
+        type: webhook
+        settings:
+          url: $DISCORD_WEBHOOK_URL
+          httpMethod: POST
+          payload:
+            template: '{{ template "netprobe.discord.payload" . }}'
