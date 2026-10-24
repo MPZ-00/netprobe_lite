@@ -85,6 +85,8 @@ services:
     restart: always
     image: grafana/grafana-enterprise
     container_name: netprobe-grafana
+    environment:
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-http://localhost:3001}" # Base for links in alert notifications
     volumes:
       - ./config/grafana/datasources/automatic.yml:/etc/grafana/provisioning/datasources/automatic.yml
       - ./config/grafana/dashboards/main.yml:/etc/grafana/provisioning/dashboards/main.yml
