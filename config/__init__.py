@@ -53,4 +53,6 @@ class Config_Presentation():
     threshold_loss = float(os.getenv('threshold_loss'))
     threshold_latency = float(os.getenv('threshold_latency'))
     threshold_jitter = float(os.getenv('threshold_jitter'))
-    threshold_dns_latency = float(os.getenv('threshold_dns_latency'))    
+    threshold_dns_latency = float(os.getenv('threshold_dns_latency'))
+    threshold_health = float(os.getenv('threshold_health'))
+    threshold_outage = float(os.getenv('threshold_outage'))    

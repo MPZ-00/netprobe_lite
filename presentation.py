@@ -69,6 +69,17 @@ class CustomCollector(object):
 
         yield h
 
+        # Exported so alert rules compare against .env instead of hardcoding thresholds
+        t = GaugeMetricFamily("Threshold_Stats", 'Alert thresholds from .env', labels=['type'])
+        t.add_metric(['loss'],Config_Presentation.threshold_loss)
+        t.add_metric(['latency'],Config_Presentation.threshold_latency)
+        t.add_metric(['jitter'],Config_Presentation.threshold_jitter)
+        t.add_metric(['dns_latency'],Config_Presentation.threshold_dns_latency)
+        t.add_metric(['health'],Config_Presentation.threshold_health)
+        t.add_metric(['outage'],Config_Presentation.threshold_outage)
+
+        yield t
+
         # Lets the dashboard tell "disabled" apart from "no result yet"
         e = GaugeMetricFamily("Speedtest_Enabled", 'Whether the speedtest service is enabled in .env')
         e.add_metric([],int(Config_Netprobe.speedtest_enabled))

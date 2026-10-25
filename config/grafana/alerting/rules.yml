@@ -1,0 +1,290 @@
+apiVersion: 1
+
+# Threshold rules compare a 5 minute average (A) against Threshold_Stats from .env (B).
+# B and O are wrapped in max() to drop their labels, so math expressions can join them with A.
+# O is 1 while overall loss is below the outage threshold: during a full outage only "Internet down" fires, not every rule at once.
+# Missing data is OK for threshold rules; "Netprobe pipeline down" is the single no-data alert.
+
+groups:
+  - orgId: 1
+    name: netprobe
+    folder: Netprobe
+    interval: 1m
+    rules:
+      - uid: netprobe-internet-down
+        title: Internet down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: min_over_time(Network_Stats{type="loss", target="all"}[2m])
+              instant: true
+          - refId: B
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: B
+              expr: max(Threshold_Stats{type="outage"})
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A >= $B
+        noDataState: OK
+        execErrState: OK
+        for: 1m
+        annotations:
+          summary: Internet down
+          description: Packet loss has stayed at or above {{ $values.B.Value }}% for at least 2 minutes ({{ humanize $values.A.Value }}% loss).
+          __dashboardUid__: app
+          __panelId__: "36"
+        labels:
+          severity: critical
+          service: connectivity
+
+      - uid: netprobe-packet-loss
+        title: High packet loss
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: avg_over_time(Network_Stats{type="loss", target="all"}[5m])
+              instant: true
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: B
+              expr: max(Threshold_Stats{type="loss"})
+              instant: true
+          - refId: O
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: O
+              expr: max(Network_Stats{type="loss", target="all"}) < bool max(Threshold_Stats{type="outage"})
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A > $B && $O
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        annotations:
+          summary: High packet loss
+          description: Average packet loss over 5 minutes is {{ humanize $values.A.Value }}% (threshold {{ $values.B.Value }}%).
+          __dashboardUid__: app
+          __panelId__: "36"
+        labels:
+          severity: critical
+          service: packet_loss
+
+      - uid: netprobe-latency
+        title: High latency
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: avg_over_time(Network_Stats{type="latency", target="all"}[5m])
+              instant: true
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: B
+              expr: max(Threshold_Stats{type="latency"})
+              instant: true
+          - refId: O
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: O
+              expr: max(Network_Stats{type="loss", target="all"}) < bool max(Threshold_Stats{type="outage"})
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A > $B && $O
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        annotations:
+          summary: High latency
+          description: Average latency over 5 minutes is {{ humanize $values.A.Value }} ms (threshold {{ $values.B.Value }} ms).
+          __dashboardUid__: app
+          __panelId__: "2"
+        labels:
+          severity: warning
+          service: latency
+
+      - uid: netprobe-jitter
+        title: High jitter
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: avg_over_time(Network_Stats{type="jitter", target="all"}[5m])
+              instant: true
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: B
+              expr: max(Threshold_Stats{type="jitter"})
+              instant: true
+          - refId: O
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: O
+              expr: max(Network_Stats{type="loss", target="all"}) < bool max(Threshold_Stats{type="outage"})
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A > $B && $O
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        annotations:
+          summary: High jitter
+          description: Average jitter over 5 minutes is {{ humanize $values.A.Value }} ms (threshold {{ $values.B.Value }} ms).
+          __dashboardUid__: app
+          __panelId__: "27"
+        labels:
+          severity: warning
+          service: jitter
+
+      - uid: netprobe-dns-latency
+        title: Slow DNS
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: avg_over_time(DNS_Stats{server="My_DNS_Server"}[5m])
+              instant: true
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: B
+              expr: max(Threshold_Stats{type="dns_latency"})
+              instant: true
+          - refId: O
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: O
+              expr: max(Network_Stats{type="loss", target="all"}) < bool max(Threshold_Stats{type="outage"})
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A > $B && $O
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        annotations:
+          summary: Slow DNS
+          description: Average response time of your DNS server over 5 minutes is {{ humanize $values.A.Value }} ms (threshold {{ $values.B.Value }} ms).
+          __dashboardUid__: app
+          __panelId__: "32"
+        labels:
+          severity: warning
+          service: dns
+
+      - uid: netprobe-quality-score
+        title: Low Internet Quality Score
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: avg_over_time(Health_Stats[5m]) * 100
+              instant: true
+          - refId: B
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: B
+              expr: max(Threshold_Stats{type="health"})
+              instant: true
+          - refId: O
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: O
+              expr: max(Network_Stats{type="loss", target="all"}) < bool max(Threshold_Stats{type="outage"})
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A < $B && $O
+        noDataState: OK
+        execErrState: OK
+        for: 2m
+        annotations:
+          summary: Low Internet Quality Score
+          description: Average Internet Quality Score over 5 minutes is {{ humanize $values.A.Value }} (threshold {{ $values.B.Value }}).
+          __dashboardUid__: app
+          __panelId__: "37"
+        labels:
+          severity: critical
+          service: internet_quality
+
+      - uid: netprobe-pipeline-down
+        title: Netprobe pipeline down
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 600, to: 0}
+            datasourceUid: Zd5Cyo04z
+            model:
+              refId: A
+              expr: absent(Health_Stats)
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: math
+              expression: $A > 0
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        annotations:
+          summary: Netprobe pipeline down
+          description: No measurements are reaching Prometheus. The probe, Redis, the presentation service or Prometheus itself has stopped. This is not an internet outage.
+        labels:
+          severity: critical
+          service: netprobe
