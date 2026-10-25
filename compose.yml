@@ -9,7 +9,7 @@ services:
   redis:
     restart: always
     container_name: netprobe-redis
-    image: "redis:latest"
+    image: "redis:7.2.4"
     volumes:
       - ./config/redis/redis.conf:/etc/redis/redis.conf
     networks:
@@ -66,7 +66,7 @@ services:
   prometheus:
     restart: always
     container_name: netprobe-prometheus
-    image: "prom/prometheus"
+    image: "prom/prometheus:v2.51.2" # Pinned: a 3.x upgrade touches the TSDB, do it deliberately with a backup
     volumes:
       - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus  # Persistent local storage for Prometheus data
