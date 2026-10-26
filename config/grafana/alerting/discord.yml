@@ -56,3 +56,9 @@ contactPoints:
           httpMethod: POST
           payload:
             template: '{{ template "netprobe.discord.payload" . }}'
+
+# Replaces the org's whole policy tree, so UI edits to policies are locked while this is provisioned.
+policies:
+  - orgId: 1
+    receiver: Discord
+    group_by: ['grafana_folder', 'alertname']
